@@ -1,0 +1,92 @@
+const fs = require('fs');
+
+const { DateTime } = require('luxon');
+
+const { DataFrame } = require('pandas-js');
+
+const plotly = require('plotly')('username', 'apiKey');
+
+
+
+// Step 1: JSON parsing with nested columns
+
+const rawData = fs.readFileSync('dataset.json');
+
+const data = JSON.parse(rawData);
+
+
+
+// Step 2: Data transformation and aggregations
+
+const df = new DataFrame(data.data);
+
+df.set_index('date');
+
+df.map((row) => {
+
+    row.date = DateTime.fromISO(row.date).toJSDate();
+
+    return row;
+
+});
+
+
+
+// Step 3: Validations
+
+const missingValues = df.isnull().sum();
+
+console.log("Missing Values:\n", missingValues.toString());
+
+
+
+// Step 4: Graph Plot
+
+const trace = {
+
+    x: df.get('date').toArray(),
+
+    y: df.get('value').toArray(),
+
+    mode: 'lines',
+
+    type: 'scatter'
+
+};
+
+const layout = {
+
+    title: 'Value over Time',
+
+    xaxis: { title: 'Date' },
+
+    yaxis: { title: 'Value' }
+
+};
+
+plotly.plot([trace], layout, (err, msg) => {
+
+    if (err) return console.log(err);
+
+    console.log(msg);
+
+});
+
+
+
+// Step 5: Insights
+
+const averageValue = df.get('value').mean();
+
+console.log("Average Value:", averageValue);
+
+
+
+const maxValueIndex = df.get('value').idxmax();
+
+const maxValue = df.get('value').iloc(maxValueIndex);
+
+const maxDate = df.get('date').iloc(maxValueIndex);
+
+console.log("Maximum Value:", maxValue, "on", maxDate);
+
